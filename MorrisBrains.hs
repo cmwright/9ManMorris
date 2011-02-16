@@ -53,9 +53,9 @@ bestMove1 :: GameState -> Int
 bestMove1 state = (!!) openPositions bestIndex
 	where
 	openPositions = getEmptyPositions state
-	compOutcomes = findPossibles openPositions (getCompPositions state)
-	humanOutcomes = findPossibles openPositions (getHumanPositions state)
-	bestIndex = doubleMaximize compOutcomes humanOutcomes
+	outcomes = findPossibles openPositions (getCompPositions state) openPositions state
+	scores = lisCondense outcomes
+	bestIndex = getIndex scores (maximum scores) 0
 
 
 -- A new game state produced by placing a piece on the board
@@ -163,18 +163,23 @@ compareMills theBoard
 	playerMills = millCount theBoard humanChar
 	compMills = millCount theBoard computerChar
 	
---take all of the empty positions and an array of the possible moves
---returns an array of the possible outcomes after this turn
-findPossibles :: [Int] -> [Int] -> [[Int]]
-findPossibles [] _ = []
-findPossibles (empty:emptys) positions = [score] ++ findPossibles emptys positions
+--take all of the empty positions and an array of the possible moves and another array of open for maintenance
+--returns an array of the possible outcomes after this turn for both comp and human
+findPossibles :: [Int] -> [Int] -> [Int] -> GameState -> [[Int]]
+findPossibles [] _ _ _ = []
+findPossibles (empty:emptys) positions constEmpty state = 
+			[comp ++ human] ++ findPossibles emptys positions constEmpty state
 	where
-	score = getScore positions empty emptys
+	comp = getScore positions empty emptys
+	--get the human score using the new piece used above, [] because we aren't adding anything
+	human = getScore (getHumanPositions state) 26 (delete empty constEmpty)
 
 --takes a players current positions, a new piece, and the list of empty positions
 --returns a list containing the number of mill, the number of adjacents 	
 getScore :: [Int] -> Int -> [Int] -> [Int]
-getScore current possible emptys = [millScore, adjScore]
+getScore current possible emptys 
+	| possible > 24 = [(millHelper mills current), (getAdjacents current possible emptys)]
+	| otherwise = [millHelper mills (current ++ [possible]), getAdjacents current possible emptys]
 	where 
 	millScore = millHelper mills (current ++ [possible])
 	adjScore = getAdjacents current possible emptys
@@ -222,14 +227,13 @@ thirdOpen (x, y) (mill:rest) emptys
 isOpenSpace :: Int -> [Int] -> Bool
 isOpenSpace space emptys = elem space emptys 
 
---takes 2 2d lists of possible scores
---returns the index where the computer's score is maximized
-doubleMaximize :: [[Int]] -> [[Int]] -> Int
-doubleMaximize compPos humanPos = getIndex together (maximum together) 0
+--takes a 2d list, each inner looks like [[Int,Int,Int,Int]]
+--returns the score for each inner list
+lisCondense :: [[Int]] -> [Int]
+lisCondense [] = []
+lisCondense (inner:rest) = ((10*x1) + (4*x2) + (-9*x3) + (-5*x4)) : lisCondense rest
 	where
-	compScores = scoreIt compPos 'C'
-	humanScores = scoreIt humanPos 'H'
-	together = bringTogether compScores humanScores
+	(x1:x2:x3:x4:nothing) = inner
 	
 --takes a 2d list of integers and the char for which player
 --returns an array of the sum of each inner list
