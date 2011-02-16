@@ -131,15 +131,20 @@ millHelper _ [] = 0
 millHelper _ (x:[]) = 0
 millHelper _ (x:y:[]) = 0
 millHelper [] _ = 0
-millHelper millList posList = checkMills posList (head millList) + millHelper (tail millList) posList
+millHelper millList posList = checkMills mill posList + millHelper rest posList
+	where
+	(mill:rest) = millList
 	
---check contents of an array for a subarray, 1 for found 0 for not found
+	
+--check each mill possibility against player's current positions
+--takes mills and current positions
+--returns 1 for mill, 0 for not
 checkMills :: [Int] -> [Int] -> Int
-checkMills [] _ = 0
-checkMills (x:y:[]) _ = 0
-checkMills (x1:x2:x3:rest) aMill 
-	| (elem x1 aMill) && (elem x2 aMill) && (elem x3 aMill) = 1
-	| otherwise = checkMills (x2:x3:rest) aMill
+checkMills mill positions
+	| (elem x positions) && (elem y positions) && (elem z positions) = 1
+	| otherwise = 0
+	where
+	(x:y:z:nothing) = mill
 
 --helper to ensure mill index is a triple
 headTriple :: [[Int]] -> (Int, Int, Int)
